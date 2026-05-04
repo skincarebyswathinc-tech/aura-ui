@@ -30,6 +30,8 @@ function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checked, setChecked] = useState(false);
   const [booking, setBooking] = useState<{ email?: string; startTime?: string }>({});
+  const [resources, setResources] = useState<Array<{ id: string; title: string; description: string | null; kind: string; url: string | null; is_public: boolean }>>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
 
   useEffect(() => {
     // Subscribe FIRST, then read existing session — avoids race conditions.
@@ -58,6 +60,23 @@ function DashboardPage() {
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    (async () => {
+      setResourcesLoading(true);
+      const { data } = await supabase
+        .from("resources")
+        .select("id, title, description, kind, url, is_public")
+        .order("created_at", { ascending: false });
+      if (!cancelled) {
+        setResources(data ?? []);
+        setResourcesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -114,6 +133,58 @@ function DashboardPage() {
             </div>
           </dl>
         </div>
+
+        {/* Resources / Downloads */}
+        <section className="mt-12">
+          <div className="mb-6 flex items-baseline justify-between">
+            <h2 className="font-serif text-2xl">Your resources</h2>
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              Downloads
+            </p>
+          </div>
+
+          {resourcesLoading ? (
+            <p className="text-sm text-muted-foreground">Loading resources…</p>
+          ) : resources.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Resources will appear here after your consultation.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {resources.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{r.title}</p>
+                    {r.description && (
+                      <p className="mt-1 truncate text-sm text-muted-foreground">
+                        {r.description}
+                      </p>
+                    )}
+                  </div>
+                  {r.url ? (
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-none rounded-lg border border-primary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/10"
+                    >
+                      Download
+                    </a>
+                  ) : (
+                    <span className="flex-none text-xs uppercase tracking-wide text-muted-foreground">
+                      Locked
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </main>
     </div>
   );
