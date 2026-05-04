@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -21,6 +22,10 @@ export const Route = createFileRoute("/")({
     ],
   }),
 });
+
+// TODO: replace with your real Calendly event URL, e.g.
+// "https://calendly.com/your-handle/45min"
+const CALENDLY_URL = "https://calendly.com/acme/30min";
 
 const BOOKING_HREF = "#book";
 
@@ -62,6 +67,109 @@ function CheckIcon() {
   );
 }
 
+/**
+ * Inline Calendly embed with event capture.
+ * - Loads Calendly's widget.js once.
+ * - Listens for postMessage events from the iframe.
+ * - On `event_scheduled`, fetches the invitee details (email + start time)
+ *   from Calendly's public API, stores them, then navigates to /payment.
+ * - Stays inside the page — no new tabs, no external redirects.
+ */
+function CalendlyInline() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Inject Calendly script once
+    const SCRIPT_ID = "calendly-widget-script";
+    if (!document.getElementById(SCRIPT_ID)) {
+      const script = document.createElement("script");
+      script.id = SCRIPT_ID;
+      script.src = "https://assets.calendly.com/assets/external/widget.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    const isCalendlyEvent = (e: MessageEvent) =>
+      typeof e.data === "object" &&
+      e.data !== null &&
+      typeof (e.data as { event?: unknown }).event === "string" &&
+      (e.data as { event: string }).event.indexOf("calendly.") === 0;
+
+    const handleMessage = async (e: MessageEvent) => {
+      if (!isCalendlyEvent(e)) return;
+      const payload = e.data as {
+        event: string;
+        payload?: {
+          event?: { uri?: string };
+          invitee?: { uri?: string };
+        };
+      };
+
+      if (payload.event !== "calendly.event_scheduled") return;
+
+      const inviteeUri = payload.payload?.invitee?.uri;
+      const eventUri = payload.payload?.event?.uri;
+
+      let email = "";
+      let startTime = "";
+
+      // Calendly's invitee/event URIs are public REST endpoints that return
+      // the booking details immediately after scheduling.
+      try {
+        if (inviteeUri) {
+          const res = await fetch(inviteeUri);
+          if (res.ok) {
+            const data = await res.json();
+            email = data?.resource?.email ?? "";
+          }
+        }
+        if (eventUri) {
+          const res = await fetch(eventUri);
+          if (res.ok) {
+            const data = await res.json();
+            startTime = data?.resource?.start_time ?? "";
+          }
+        }
+      } catch {
+        // Network/CORS edge case — still continue to /payment with whatever we have.
+      }
+
+      const booking = {
+        email,
+        startTime,
+        inviteeUri: inviteeUri ?? "",
+        eventUri: eventUri ?? "",
+        scheduledAt: new Date().toISOString(),
+      };
+
+      try {
+        sessionStorage.setItem("booking", JSON.stringify(booking));
+      } catch {
+        // ignore storage errors (private mode, etc.)
+      }
+
+      navigate({
+        to: "/payment",
+        search: { email, start: startTime },
+      });
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [navigate]);
+
+  // Calendly reads data-url and theme params from this div
+  return (
+    <div
+      ref={containerRef}
+      className="calendly-inline-widget w-full"
+      data-url={`${CALENDLY_URL}?hide_gdpr_banner=1&background_color=171A20&text_color=FFFFFF&primary_color=C8A96A`}
+      style={{ minWidth: "280px", height: "720px" }}
+    />
+  );
+}
+
 function Index() {
   return (
     <div className="min-h-screen bg-background pb-24 text-foreground md:pb-0">
@@ -97,7 +205,7 @@ function Index() {
           </div>
         </section>
 
-        {/* 2. OFFER CARD (ONLY ONE) */}
+        {/* 2. OFFER CARD */}
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 sm:p-10">
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
@@ -126,25 +234,20 @@ function Index() {
           </div>
         </section>
 
-        {/* 3. CALENDLY SECTION (FULL WIDTH) */}
+        {/* 3. CALENDLY (inline, full width) */}
         <section id="book" className="py-16 sm:py-20">
           <div className="mb-8 text-center">
             <h2 className="font-serif text-3xl sm:text-4xl">Choose a time</h2>
             <p className="mt-3 text-sm text-muted-foreground">
-              Select a slot that works for you. Confirmation is instant.
+              Select a slot — booking happens right here on this page.
             </p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <iframe
-              title="Book a consultation"
-              src="https://calendly.com/your-handle/45min?hide_gdpr_banner=1&background_color=171A20&text_color=FFFFFF&primary_color=C8A96A"
-              className="h-[720px] w-full border-0"
-              loading="lazy"
-            />
+            <CalendlyInline />
           </div>
         </section>
 
-        {/* 4. TRUST — CASE STUDIES */}
+        {/* 4. TRUST */}
         <section className="py-16 sm:py-20">
           <div className="mb-12 text-center">
             <p className="text-xs uppercase tracking-[0.3em] text-primary">Case studies</p>
@@ -218,7 +321,7 @@ function Index() {
         </div>
       </footer>
 
-      {/* Mobile sticky bottom CTA */}
+      {/* Mobile sticky CTA */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
         <GoldButton className="w-full">Book consultation</GoldButton>
       </div>
