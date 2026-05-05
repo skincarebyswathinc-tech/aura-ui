@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
 
 // TODO: replace with your real Calendly event URL, e.g.
 // "https://calendly.com/your-handle/45min"
-const CALENDLY_URL = "https://calendly.com/acme/30min";
+const CALENDLY_URL = "https://calendly.com/skincarebyswathinc/derma-gut-consultation-15mins";
 
 const BOOKING_HREF = "#book";
 

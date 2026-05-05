@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PaymentRouteImport } from './routes/payment'
+import { Route as OverallFlowRouteImport } from './routes/overall-flow'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const PaymentRoute = PaymentRouteImport.update({
   id: '/payment',
   path: '/payment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OverallFlowRoute = OverallFlowRouteImport.update({
+  id: '/overall-flow',
+  path: '/overall-flow',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/overall-flow': typeof OverallFlowRoute
   '/payment': typeof PaymentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/overall-flow': typeof OverallFlowRoute
   '/payment': typeof PaymentRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/overall-flow': typeof OverallFlowRoute
   '/payment': typeof PaymentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/payment'
+  fullPaths: '/' | '/dashboard' | '/login' | '/overall-flow' | '/payment'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/payment'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/payment'
+  to: '/' | '/dashboard' | '/login' | '/overall-flow' | '/payment'
+  id: '__root__' | '/' | '/dashboard' | '/login' | '/overall-flow' | '/payment'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  OverallFlowRoute: typeof OverallFlowRoute
   PaymentRoute: typeof PaymentRoute
 }
 
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/payment'
       fullPath: '/payment'
       preLoaderRoute: typeof PaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/overall-flow': {
+      id: '/overall-flow'
+      path: '/overall-flow'
+      fullPath: '/overall-flow'
+      preLoaderRoute: typeof OverallFlowRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  OverallFlowRoute: OverallFlowRoute,
   PaymentRoute: PaymentRoute,
 }
 export const routeTree = rootRouteImport

@@ -48,7 +48,7 @@ function PaymentPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [stored, setStored] = useState<{ email?: string; startTime?: string }>({});
-  const [status, setStatus] = useState<"idle" | "processing" | "magic-sent" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "paying" | "processing" | "magic-sent" | "error">("idle");
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
@@ -63,6 +63,8 @@ function PaymentPage() {
   const email = search.email || stored.email || "";
   const startTime = search.start || stored.startTime || "";
 
+  const RAZORPAY_URL = "https://rzp.io/rzp/eldHb6v";
+
   async function handleConfirm() {
     if (!email) {
       setError("Missing email — please choose a booking slot first.");
@@ -70,6 +72,9 @@ function PaymentPage() {
       return;
     }
     setError("");
+    // Open Razorpay checkout in a new tab so the user can pay,
+    // then proceed to create their account + log them in.
+    window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer");
     setStatus("processing");
 
     // Auto-create + auto-login. Email confirmation is disabled in auth config,
@@ -138,7 +143,7 @@ function PaymentPage() {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-serif text-2xl text-primary">CHF 680</span>
+            <span className="font-serif text-2xl text-primary">INR 500</span>
           </div>
         </div>
 
@@ -158,7 +163,7 @@ function PaymentPage() {
               onClick={handleConfirm}
               className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-[0_8px_24px_-12px_rgba(200,169,106,0.6)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
             >
-              {status === "processing" ? "Processing…" : "Pay & confirm"}
+              {status === "processing" ? "Completing…" : "Pay INR 500 & confirm"}
             </button>
             {error && (
               <p className="mt-4 text-center text-sm text-destructive">{error}</p>
