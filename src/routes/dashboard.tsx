@@ -119,12 +119,12 @@ function DashboardPage() {
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             Upcoming consultation
           </p>
-          <h2 className="mt-3 font-serif text-2xl">45-Minute Private Consultation</h2>
+          <h2 className="mt-3 font-serif text-2xl">15-Minute Derma & Gut Consultation</h2>
           <dl className="mt-6 space-y-4 border-t border-border pt-6 text-sm">
             <div className="flex items-baseline justify-between">
               <dt className="text-muted-foreground">When</dt>
               <dd className="text-right font-medium">
-                {formatTime(booking.startTime) || "Details sent to your inbox"}
+                {formatTime(booking.startTime) || "See your Calendly confirmation email"}
               </dd>
             </div>
             <div className="flex items-baseline justify-between">
@@ -132,6 +132,19 @@ function DashboardPage() {
               <dd className="font-serif text-primary">Confirmed</dd>
             </div>
           </dl>
+          <div className="mt-6 border-t border-border pt-6">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              Your booking link
+            </p>
+            <a
+              href="https://calendly.com/skincarebyswathinc/derma-gut-consultation-15mins"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex h-11 items-center justify-center rounded-lg border border-primary/40 px-5 text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/10"
+            >
+              Open / reschedule on Calendly
+            </a>
+          </div>
         </div>
 
         {/* Resources / Downloads */}
