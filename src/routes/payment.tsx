@@ -163,7 +163,7 @@ function PaymentPage() {
               onClick={handleConfirm}
               className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-[0_8px_24px_-12px_rgba(200,169,106,0.6)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
             >
-              {status === "processing" ? "Processing…" : "Pay & confirm"}
+              {status === "processing" ? "Completing…" : "Pay INR 500 & confirm"}
             </button>
             {error && (
               <p className="mt-4 text-center text-sm text-destructive">{error}</p>
