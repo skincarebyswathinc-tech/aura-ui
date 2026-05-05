@@ -169,50 +169,18 @@ function PaymentPage() {
               </div>
             </div>
 
-            {!paymentOpened ? (
-              <button
-                type="button"
-                onClick={handleOpenPayment}
-                className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-[0_8px_24px_-12px_rgba(200,169,106,0.6)] transition-all hover:brightness-110 active:scale-[0.98]"
-              >
-                Pay INR {PRICE_INR} & confirm
-              </button>
-            ) : (
-              <div className="mt-8 space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-6">
-                <p className="text-sm text-muted-foreground">
-                  Payment opened in a new tab. Once you've completed the payment,
-                  confirm below to access your dashboard.
-                </p>
-                <label className="flex items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={paidConfirmed}
-                    onChange={(e) => setPaidConfirmed(e.target.checked)}
-                    className="mt-1 h-4 w-4 accent-primary"
-                  />
-                  <span>
-                    I confirm I have successfully paid <strong>INR {PRICE_INR}</strong> via Razorpay.
-                  </span>
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer")}
-                    className="flex-1 rounded-lg border border-primary/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-primary hover:bg-primary/10"
-                  >
-                    Reopen payment
-                  </button>
-                  <button
-                    type="button"
-                    disabled={status === "processing" || !paidConfirmed}
-                    onClick={handleConfirmPaid}
-                    className="flex-1 rounded-lg bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:brightness-110 disabled:opacity-50"
-                  >
-                    {status === "processing" ? "Verifying…" : "I've paid — continue"}
-                  </button>
-                </div>
-              </div>
-            )}
+            <button
+              type="button"
+              disabled={status === "processing"}
+              onClick={handlePayAndConfirm}
+              className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-[0_8px_24px_-12px_rgba(200,169,106,0.6)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+            >
+              {status === "processing" ? "Processing…" : `Pay INR ${PRICE_INR} & confirm`}
+            </button>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Razorpay opens in a new tab. We'll automatically email your secure
+              sign-in link to access your dashboard.
+            </p>
 
             {error && (
               <p className="mt-4 text-center text-sm text-destructive">{error}</p>
