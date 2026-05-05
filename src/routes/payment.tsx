@@ -48,7 +48,7 @@ function PaymentPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [stored, setStored] = useState<{ email?: string; startTime?: string }>({});
-  const [status, setStatus] = useState<"idle" | "processing" | "magic-sent" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "paying" | "processing" | "magic-sent" | "error">("idle");
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
