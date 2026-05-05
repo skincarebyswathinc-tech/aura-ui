@@ -21,23 +21,9 @@ export const Route = createFileRoute("/payment")({
   }),
 });
 
-function formatTime(iso?: string) {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
+const RAZORPAY_URL = "https://rzp.io/rzp/eldHb6v";
+const PRICE_INR = 1000;
 
-// Random URL-safe password — never shown to the user.
-// Returning users sign in via magic link instead.
 function generatePassword() {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
@@ -47,50 +33,74 @@ function generatePassword() {
 function PaymentPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const [stored, setStored] = useState<{ email?: string; startTime?: string }>({});
-  const [status, setStatus] = useState<"idle" | "paying" | "processing" | "magic-sent" | "error">("idle");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [paymentOpened, setPaymentOpened] = useState(false);
+  const [paidConfirmed, setPaidConfirmed] = useState(false);
+  const [status, setStatus] = useState<"idle" | "processing" | "magic-sent" | "error">("idle");
   const [error, setError] = useState<string>("");
 
+  // Pre-fill email from Calendly redirect / sessionStorage
   useEffect(() => {
+    let prefEmail = search.email || "";
     try {
       const raw = sessionStorage.getItem("booking");
-      if (raw) setStored(JSON.parse(raw));
+      if (raw) {
+        const stored = JSON.parse(raw);
+        if (!prefEmail && stored.email) prefEmail = stored.email;
+      }
     } catch {
       // ignore
     }
-  }, []);
+    if (prefEmail) setEmail(prefEmail);
+  }, [search.email]);
 
-  const email = search.email || stored.email || "";
-  const startTime = search.start || stored.startTime || "";
-
-  const RAZORPAY_URL = "https://rzp.io/rzp/eldHb6v";
-
-  async function handleConfirm() {
-    if (!email) {
-      setError("Missing email — please choose a booking slot first.");
-      setStatus("error");
+  function handleOpenPayment() {
+    setError("");
+    if (!name.trim()) {
+      setError("Please enter your name.");
       return;
     }
-    setError("");
-    // Open Razorpay checkout in a new tab so the user can pay,
-    // then proceed to create their account + log them in.
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      setError("Please enter a valid email.");
+      return;
+    }
     window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer");
+    setPaymentOpened(true);
+  }
+
+  async function handleConfirmPaid() {
+    setError("");
+    if (!paidConfirmed) {
+      setError("Please confirm you have completed the payment.");
+      return;
+    }
     setStatus("processing");
 
-    // Auto-create + auto-login. Email confirmation is disabled in auth config,
-    // so successful signUp returns a live session immediately.
+    // Persist name for downstream display
+    try {
+      const raw = sessionStorage.getItem("booking");
+      const prev = raw ? JSON.parse(raw) : {};
+      sessionStorage.setItem(
+        "booking",
+        JSON.stringify({ ...prev, email, name, paidAt: new Date().toISOString() }),
+      );
+    } catch {
+      // ignore
+    }
+
     const { data, error: signUpErr } = await supabase.auth.signUp({
       email,
       password: generatePassword(),
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: { full_name: name },
       },
     });
 
     if (signUpErr) {
-      // Returning user — account already exists. Send a magic link to log in.
-      const looksLikeExisting =
-        /registered|already|exists/i.test(signUpErr.message);
+      const looksLikeExisting = /registered|already|exists/i.test(signUpErr.message);
       if (looksLikeExisting) {
         const { error: otpErr } = await supabase.auth.signInWithOtp({
           email,
@@ -113,8 +123,6 @@ function PaymentPage() {
       navigate({ to: "/dashboard" });
       return;
     }
-
-    // Fallback: no session returned (shouldn't happen with auto-confirm on)
     setStatus("magic-sent");
   }
 
@@ -129,23 +137,8 @@ function PaymentPage() {
           Confirm your booking
         </h1>
         <p className="mt-4 text-sm text-muted-foreground sm:text-base">
-          Your slot is held. Complete payment to confirm.
+          Enter your details and complete payment to confirm.
         </p>
-
-        <div className="mt-10 space-y-4 rounded-2xl border border-border bg-card p-8">
-          <div className="flex items-baseline justify-between border-b border-border pb-4">
-            <span className="text-sm text-muted-foreground">Email</span>
-            <span className="text-right font-medium">{email || "—"}</span>
-          </div>
-          <div className="flex items-baseline justify-between border-b border-border pb-4">
-            <span className="text-sm text-muted-foreground">Time</span>
-            <span className="text-right font-medium">{formatTime(startTime) || "—"}</span>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-serif text-2xl text-primary">INR 500</span>
-          </div>
-        </div>
 
         {status === "magic-sent" ? (
           <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-6 text-center">
@@ -157,14 +150,82 @@ function PaymentPage() {
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              disabled={status === "processing"}
-              onClick={handleConfirm}
-              className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-[0_8px_24px_-12px_rgba(200,169,106,0.6)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
-            >
-              {status === "processing" ? "Completing…" : "Pay INR 500 & confirm"}
-            </button>
+            <div className="mt-10 space-y-5 rounded-2xl border border-border bg-card p-8">
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Name
+                </span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Email
+                </span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <div className="flex items-baseline justify-between border-t border-border pt-4">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="font-serif text-2xl text-primary">INR {PRICE_INR}</span>
+              </div>
+            </div>
+
+            {!paymentOpened ? (
+              <button
+                type="button"
+                onClick={handleOpenPayment}
+                className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-[0_8px_24px_-12px_rgba(200,169,106,0.6)] transition-all hover:brightness-110 active:scale-[0.98]"
+              >
+                Pay INR {PRICE_INR} & confirm
+              </button>
+            ) : (
+              <div className="mt-8 space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-6">
+                <p className="text-sm text-muted-foreground">
+                  Payment opened in a new tab. Once you've completed the payment,
+                  confirm below to access your dashboard.
+                </p>
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={paidConfirmed}
+                    onChange={(e) => setPaidConfirmed(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-primary"
+                  />
+                  <span>
+                    I confirm I have successfully paid <strong>INR {PRICE_INR}</strong> via Razorpay.
+                  </span>
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer")}
+                    className="flex-1 rounded-lg border border-primary/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-primary hover:bg-primary/10"
+                  >
+                    Reopen payment
+                  </button>
+                  <button
+                    type="button"
+                    disabled={status === "processing" || !paidConfirmed}
+                    onClick={handleConfirmPaid}
+                    className="flex-1 rounded-lg bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:brightness-110 disabled:opacity-50"
+                  >
+                    {status === "processing" ? "Verifying…" : "I've paid — continue"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {error && (
               <p className="mt-4 text-center text-sm text-destructive">{error}</p>
             )}
