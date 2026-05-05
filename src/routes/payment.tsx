@@ -138,7 +138,7 @@ function PaymentPage() {
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-serif text-2xl text-primary">CHF 680</span>
+            <span className="font-serif text-2xl text-primary">INR 500</span>
           </div>
         </div>
 
