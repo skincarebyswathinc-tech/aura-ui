@@ -36,12 +36,9 @@ function PaymentPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [paymentOpened, setPaymentOpened] = useState(false);
-  const [paidConfirmed, setPaidConfirmed] = useState(false);
   const [status, setStatus] = useState<"idle" | "processing" | "magic-sent" | "error">("idle");
   const [error, setError] = useState<string>("");
 
-  // Pre-fill email from Calendly redirect / sessionStorage
   useEffect(() => {
     let prefEmail = search.email || "";
     try {
@@ -56,7 +53,7 @@ function PaymentPage() {
     if (prefEmail) setEmail(prefEmail);
   }, [search.email]);
 
-  function handleOpenPayment() {
+  async function handlePayAndConfirm() {
     setError("");
     if (!name.trim()) {
       setError("Please enter your name.");
@@ -66,19 +63,10 @@ function PaymentPage() {
       setError("Please enter a valid email.");
       return;
     }
-    window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer");
-    setPaymentOpened(true);
-  }
 
-  async function handleConfirmPaid() {
-    setError("");
-    if (!paidConfirmed) {
-      setError("Please confirm you have completed the payment.");
-      return;
-    }
+    window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer");
     setStatus("processing");
 
-    // Persist name for downstream display
     try {
       const raw = sessionStorage.getItem("booking");
       const prev = raw ? JSON.parse(raw) : {};
