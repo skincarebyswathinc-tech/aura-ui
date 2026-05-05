@@ -63,6 +63,8 @@ function PaymentPage() {
   const email = search.email || stored.email || "";
   const startTime = search.start || stored.startTime || "";
 
+  const RAZORPAY_URL = "https://rzp.io/rzp/eldHb6v";
+
   async function handleConfirm() {
     if (!email) {
       setError("Missing email — please choose a booking slot first.");
@@ -70,6 +72,9 @@ function PaymentPage() {
       return;
     }
     setError("");
+    // Open Razorpay checkout in a new tab so the user can pay,
+    // then proceed to create their account + log them in.
+    window.open(RAZORPAY_URL, "_blank", "noopener,noreferrer");
     setStatus("processing");
 
     // Auto-create + auto-login. Email confirmation is disabled in auth config,
