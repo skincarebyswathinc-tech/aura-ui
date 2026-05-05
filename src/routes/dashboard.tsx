@@ -134,16 +134,14 @@ function DashboardPage() {
           </dl>
           <div className="mt-6 border-t border-border pt-6">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Your booking link
+              Booking details
             </p>
-            <a
-              href="https://calendly.com/skincarebyswathinc/derma-gut-consultation-15mins"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex h-11 items-center justify-center rounded-lg border border-primary/40 px-5 text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/10"
-            >
-              Open / reschedule on Calendly
-            </a>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Please check your email{" "}
+              <strong className="text-foreground">{session.user.email}</strong>{" "}
+              for your Calendly booking link, meeting time, and reschedule
+              options.
+            </p>
           </div>
         </div>
 
